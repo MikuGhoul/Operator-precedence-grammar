@@ -27,15 +27,15 @@ std::vector<Context_Free*> tiny_lexical(std::string _context_line)
 		if (*x == '|') ++same_left;
 	}
 	std::vector<std::string> right_container;	// 文法的右部可能有多个候选式，这里用的string的vector存储
-	// 反正我自己定义dsl，可以写个文档规定每行的文法输入格式为`E->E+T|T`, 非终结符必须大写，终结符必须小写啥的
-	std::string::iterator flag = _context_line.begin() + 3; 
+												// 反正我自己定义dsl，可以写个文档规定每行的文法输入格式为`E->E+T|T`, 非终结符必须大写，终结符必须小写啥的
+	std::string::iterator flag = _context_line.begin() + 3;
 	if (same_left != 1) {
 		for (auto x = _context_line.begin() + 3; x != _context_line.end(); ++x) {
 			if (*x == '|') {
 				right_container.push_back(std::string(flag, x));
 				flag = x + 1;
 			}
-			else if (x == _context_line.end() - 1){
+			else if (x == _context_line.end() - 1) {
 				right_container.push_back(std::string(flag, _context_line.end()));
 			}
 		}
@@ -85,11 +85,11 @@ void insert_operate(char _left_value, char _right_value, std::stack<std::vector<
 		temp_vec.push_back(_right_value);
 		_temp_stack.push(temp_vec);
 	}
-	
+
 }
 
 // 这里_flag就不取引用了，因为还要计算vn，flag原值不能改，这里直接用vector的拷贝构造一个_flag
-std::vector<std::vector<bool>> calc_last_vt(std::vector<std::vector<bool>> _flag, const std::vector<std::vector<Context_Free*>> &_all_grammer, 
+std::vector<std::vector<bool>> calc_last_vt(std::vector<std::vector<bool>> _flag, const std::vector<std::vector<Context_Free*>> &_all_grammer,
 	const std::set<char> &_vt_set, std::vector<std::map<char, size_t>> _vn_vt_index)
 {
 	std::stack<std::vector<char>> temp_stack;
@@ -97,7 +97,7 @@ std::vector<std::vector<bool>> calc_last_vt(std::vector<std::vector<bool>> _flag
 		for (const auto &_y : _x) {
 			std::string _right_value = _y->get_right();
 			char _right_last = *(_right_value.end() - 1);
-			char _right_second_last = 0;		
+			char _right_second_last = 0;
 			if (_y->get_right().size() > 1)							// 针对右侧只有一个符号的情况
 				_right_second_last = *(_right_value.end() - 2);
 			if (_vt_set.find(_right_last) != _vt_set.end())			// 这里用set优化可以快一点
@@ -119,7 +119,7 @@ std::vector<std::vector<bool>> calc_last_vt(std::vector<std::vector<bool>> _flag
 	return _flag;
 }
 
-std::vector<std::vector<bool>> calc_first_vt(std::vector<std::vector<bool>> _flag, const std::vector<std::vector<Context_Free*>> &_all_grammer, 
+std::vector<std::vector<bool>> calc_first_vt(std::vector<std::vector<bool>> _flag, const std::vector<std::vector<Context_Free*>> &_all_grammer,
 	const std::set<char> &_vt_set, std::vector<std::map<char, size_t>> _vn_vt_index)
 {
 	std::stack<std::vector<char>> temp_stack;
@@ -130,7 +130,7 @@ std::vector<std::vector<bool>> calc_first_vt(std::vector<std::vector<bool>> _fla
 			char _right_second_first = 0;
 			if (_y->get_right().size() > 1)
 				_right_second_first = *(_right_value.begin() + 1);
-			if (_vt_set.find(_right_first) != _vt_set.end())		
+			if (_vt_set.find(_right_first) != _vt_set.end())
 				insert_operate(_y->get_left(), *_vt_set.find(_right_first), temp_stack, _flag, _vn_vt_index);
 			else if (_vt_set.find(_right_second_first) != _vt_set.end() && _right_first <= 'Z' && _right_first >= 'A')
 				insert_operate(_y->get_left(), *_vt_set.find(_right_second_first), temp_stack, _flag, _vn_vt_index);
@@ -163,8 +163,8 @@ std::vector<std::vector<char>> init_relationship_table(const std::string &_vt_co
 	return relationship_table;
 }
 
-std::vector<std::vector<char>> calc_relationship_table(std::vector<std::vector<bool>> _last_vt, std::vector<std::vector<bool>> _first_vt, const std::vector<std::vector<Context_Free*>> &_all_grammer, 
-	const std::set<char> &_vt_set, std::vector<std::map<char, size_t>> _vn_vt_index, std::vector<std::vector<char>> &relationship_table, const std::string &_vt_container)
+std::vector<std::vector<char>> calc_relationship_table(std::vector<std::vector<bool>> _last_vt, std::vector<std::vector<bool>> _first_vt, const std::vector<std::vector<Context_Free*>> &_all_grammer,
+	const std::set<char> &_vt_set, std::vector<std::map<char, size_t>> &_vn_vt_index, std::vector<std::vector<char>> &relationship_table, const std::string &_vt_container)
 {
 	for (const auto &_x : _all_grammer)
 		for (const auto &_y : _x) {
@@ -210,9 +210,116 @@ std::vector<std::vector<char>> calc_relationship_table(std::vector<std::vector<b
 	return relationship_table;
 }
 
+void operator_precedence(const std::string &_input_string, const std::set<char> &_vt_set, const std::vector<std::vector<char>> &relationship_table,
+	std::vector<std::map<char, size_t>> &_vn_vt_index, const std::vector<std::vector<Context_Free*>> &_all_grammer)
+{
+	size_t k = 0;
+	size_t _istream_pointer = 0;
+	std::vector<char> character = { '#' };
+	char istream_char = _input_string[_istream_pointer];
+	std::cout << "character stack" << "\t\tinput string" << std::endl;
+	while (true) {
+		for (const auto &_x : character)
+			std::cout << _x;
+		std::cout << "\t\t\t" << std::string(_input_string.begin() + _istream_pointer, _input_string.end());
+		std::cout << std::endl;
+		// 算符优先分析完成，输入串可接受
+		size_t previous;
+		if (_vt_set.find(character[k]) != _vt_set.end() || character[k] == '#')
+			previous = k;
+		else
+			previous = k - 1;
+		if (character[previous] == '#' && istream_char == '#') {
+			std::cout << "done" << std::endl;
+			return;
+		}
+		else {
+			size_t j;
+			if (_vt_set.find(character[k]) != _vt_set.end() || character[k] == '#')
+				j = k;
+			else
+				j = k - 1;
+			char relation_char;
+			if (character[j] == '#')
+				relation_char = '<';
+			else {
+				size_t relation_index_1 = _vn_vt_index[1][character[j]];
+				size_t relation_index_2 = _vn_vt_index[1][istream_char];
+				relation_char = relationship_table[relation_index_1][relation_index_2];
+			}
+			// 移进
+			if (relation_char == '<' || relation_char == '=') {
+				++k;
+				character.push_back(istream_char);
+				istream_char = _input_string[++_istream_pointer];
+			}
+			// 归约
+			else if (relation_char == '>') {
+				do {
+					char current_char = character[j];
+					if (_vt_set.find(character[j - 1]) != _vt_set.end() || character[j - 1] == '#')
+						--j;
+					else
+						j -= 2;
+					if (character[j] == '#')
+						relation_char = '<';
+					else {
+						size_t relation_index_1 = _vn_vt_index[1][character[j]];
+						size_t relation_index_2 = _vn_vt_index[1][current_char];
+						relation_char = relationship_table[relation_index_1][relation_index_2];
+					}
+				} while (relation_char != '<');
+				std::string merge_str(character.begin() + j + 1, character.begin() + k + 1);
+				bool match_done = false;		// 规约成功break出文法遍历
+				for (const auto &_x : _all_grammer) {
+					for (const auto &_y : _x) {
+						std::string right_value = _y->get_right();
+						char left_value = _y->get_left();
+						bool match_status = false;
+						for (size_t i = 0; i < merge_str.size(); ++i) {
+							char merger_str_char = 0;
+							char right_value_char = 1;
+							bool flag_vt_1 = true, flag_vt_2 = true;
+							if (_vt_set.find(merge_str[i]) != _vt_set.end()) {
+								flag_vt_1 = false;
+								merger_str_char = merge_str[i];
+							}
+							if (_vt_set.find(right_value[i]) != _vt_set.end()) {
+								flag_vt_2 = false;
+								right_value_char = right_value[i];
+							}
+							if (flag_vt_1 && flag_vt_2)		// 都是非终结符
+								continue;
+							if (merger_str_char != right_value_char)
+								break;
+							match_status = true;
+						}
+						// 当前文法可以规约
+						if (match_status) {
+							std::vector<char>::iterator erase_index_1 = character.begin() + j + 1;
+							std::vector<char>::iterator erase_index_2 = character.begin() + k + 1;
+							character.erase(erase_index_1, erase_index_2);
+							character.push_back(left_value);
+							k = j + 1;
+							match_done = true;
+							break;
+						}
+						else
+							continue;
+					}
+					if (match_done)
+						break;
+				}
+			}
+			else std::cout << "error" << std::endl;
+		}
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	// step1 解析文法
+	std::cout << "Input context-free grammer(Example: E->E+T|T):" << std::endl;
 	std::string context_line;
 	std::vector<std::vector<Context_Free*>> all_grammer;
 	// win下用`ctrl+z`退出输入
@@ -220,7 +327,7 @@ int main(int argc, char *argv[])
 		// 词法分析文法的输入，算是一个小型dsl的lexer
 		all_grammer.push_back(tiny_lexical(context_line));
 	}
-	
+
 	// step2 构造优先关系表
 	std::vector<std::vector<bool>> flag;
 	std::string vn_container;
@@ -254,15 +361,21 @@ int main(int argc, char *argv[])
 	std::vector<std::vector<char>> relationship_table = init_relationship_table(vt_container);
 	relationship_table = calc_relationship_table(last_vt, first_vt, all_grammer, vt_set, vn_vt_index, relationship_table, vt_container);
 
-	for (auto x : vt_container) {
-		std::cout << x << " ";
-	}
-	std::cout << std::endl;
+	std::cout << "Operator priority relation table：" << std::endl;
+
 	for (auto x : relationship_table) {
 		for (auto y : x) {
 			std::cout << y << " ";
 		}
 		std::cout << std::endl;
 	}
+
+	// step3 算符优先文法
+	std::cout << "Input string(Example: i*(i+i)):" << std::endl;
+	std::string input_string;
+	std::cin.clear();	// 重置`ctrl+z`引起的cin状态失效
+	std::cin >> input_string;
+	input_string.push_back('#');
+	operator_precedence(input_string, vt_set, relationship_table, vn_vt_index, all_grammer);
 	return 0;
 }
